@@ -1,6 +1,18 @@
 <?php
 
 /**
+ * \brief Like `explode()`, but return an empty list if the given string is empty.
+ *
+ * Isn't this how anyone would expect their explode() / split() to
+ * behave?
+ *
+ * Parameters are the same as for explodeProperly().
+ */
+function explodeProperly($delim, $str) {
+	return empty($str) ? array() : explode($delim, $str);
+}
+
+/**
  * \brief Group_Manager controller.
  *
  * A light wrapper for UU group management rules.
@@ -15,12 +27,21 @@ class Group_Manager extends MY_Controller {
 		if (isset($this->_groups)) {
 			return $this->_groups;
 		} else {
-			$ruleBody = <<<EORULE
+			if ($this->rodsuser->getUserInfo()['type'] == 'rodsadmin') {
+				$ruleBody = <<<EORULE
 rule {
-	uuGroupMemberships(*user, *groupsList);
-	uuJoin(',', *groupsList, *groups);
+	uuGetAllGroups(*groupList);
+	uuJoin(',', *groupList, *groups);
 }
 EORULE;
+			} else {
+				$ruleBody = <<<EORULE
+rule {
+	uuUserGetGroups(*user, true, *groupList);
+	uuJoin(',', *groupList, *groups);
+}
+EORULE;
+			}
 			$rule = new ProdsRule(
 				$this->rodsuser->getRodsAccount(),
 				$ruleBody,
@@ -32,7 +53,7 @@ EORULE;
 				)
 			);
 			$result = $rule->execute();
-			return $this->_groups = explode(',', $result['*groups']);
+			return $this->_groups = explodeProperly(',', $result['*groups']);
 		}
 	}
 
@@ -55,7 +76,7 @@ EORULE;
 				)
 			);
 			$result = $rule->execute();
-			return $this->_categories = explode(',', $result['*categories']);
+			return $this->_categories = explodeProperly(',', $result['*categories']);
 		}
 	}
 
@@ -84,62 +105,35 @@ EORULE;
 				)
 			);
 			$result = $rule->execute();
-			return $this->_subcategories[$category] = explode(',', $result['*subcategories']);
-		}
-	}
-
-	protected function _getUsers() {
-		if (isset($this->_categories)) {
-			return $this->_categories;
-		} else {
-			$ruleBody = <<<EORULE
-rule {
-	uuGetUsers(*userList);
-	uuJoin(',', *userList, *users);
-}
-EORULE;
-			$rule = new ProdsRule(
-				$this->rodsuser->getRodsAccount(),
-				$ruleBody,
-				array(),
-				array(
-					'*users'
-				)
-			);
-			$result = $rule->execute();
-			return $this->_categories = explode(',', $result['*users']);
+			return $this->_subcategories[$category] = explodeProperly(',', $result['*subcategories']);
 		}
 	}
 
 	protected function _findUsers($query) {
-		if (isset($this->_categories)) {
-			return $this->_categories;
-		} else {
-			$ruleBody = <<<EORULE
+		$ruleBody = <<<EORULE
 rule {
 	uuFindUsers(*query, *userList);
 	uuJoin(',', *userList, *users);
 }
 EORULE;
-			$rule = new ProdsRule(
-				$this->rodsuser->getRodsAccount(),
-				$ruleBody,
-				array(
-					'*query' => $query,
-				),
-				array(
-					'*users',
-				)
-			);
-			$result = $rule->execute();
-			return $this->_categories = explode(',', $result['*users']);
-		}
+		$rule = new ProdsRule(
+			$this->rodsuser->getRodsAccount(),
+			$ruleBody,
+			array(
+				'*query' => $query,
+			),
+			array(
+				'*users',
+			)
+		);
+		$result = $rule->execute();
+		return explodeProperly(',', $result['*users']);
 	}
 
 	protected function _getGroupMembers($groupName) {
 		$ruleBody = <<<EORULE
 rule {
-	uuGroupGetMembers(*groupName, *memberList);
+	uuGroupGetMembers(*groupName, true, true, *memberList);
 	uuJoin(',', *memberList, *members);
 }
 EORULE;
@@ -154,7 +148,15 @@ EORULE;
 			)
 		);
 		$result = $rule->execute();
-		return explode(',', $result['*members']);
+		$members = array();
+		foreach (explodeProperly(',', $result['*members']) as $memberString) {
+			list($type, $name) = explode(':', $memberString);
+			$types = array('r' => 'reader',
+			               'n' => 'normal',
+			               'm' => 'manager');
+			$members[$name] = array('access' => $types[$type]);
+		}
+		return $members;
 	}
 
 	protected function _getGroupProperties($groupName) {
@@ -162,8 +164,6 @@ EORULE;
 rule {
 	uuGroupGetCategory(*groupName, *category, *subcategory);
 	uuGroupGetDescription(*groupName, *description);
-	uuGroupGetManagers(*groupName, *managerList);
-	uuJoin(',', *managerList, *managers);
 }
 EORULE;
 		$rule = new ProdsRule(
@@ -176,7 +176,6 @@ EORULE;
 				'*category',
 				'*subcategory',
 				'*description',
-				'*managers',
 			)
 		);
 		$result = $rule->execute();
@@ -185,7 +184,6 @@ EORULE;
 			'category'    => $result['*category'],
 			'subcategory' => $result['*subcategory'],
 			'description' => $result['*description'],
-			'managers'    => explode(',', $result['*managers']),
 		);
 	}
 
@@ -197,17 +195,9 @@ EORULE;
 		foreach ($groups as $groupName) {
 			$properties = $this->_getGroupProperties($groupName);
 			if (!empty($properties['category']) && !empty($properties['subcategory'])) {
-
-				$members = array();
-				foreach ($this->_getGroupMembers($groupName) as $member)
-					// If only PHP's array_map worked properly with maps...
-					$members[$member] = array(
-						'isManager' => in_array($member, $properties['managers'])
-					);
-
 				$hierarchy[$properties['category']][$properties['subcategory']][$groupName] = array(
 					'description' => $properties['description'],
-					'members'     => $members,
+					'members'     => $this->_getGroupMembers($groupName),
 				);
 			}
 		}
@@ -258,49 +248,14 @@ EORULE;
 		$this->output
 			->set_content_type('application/json')
 			->set_output(json_encode(
-				array_values(
-					//array_filter($this->_getUsers(), function($val) use($query) {
-					array_filter($this->_findUsers($query), function($val) use($query) {
-						return !(!empty($query) && strstr($val, $query) === FALSE);
-					})
-				)
+				array_values($this->_findUsers($query))
 			));
 	}
 
 	public function groupCreate() {
 		$ruleBody = <<<EORULE
 rule {
-	uuGroupAdd(*groupName, *statusInt, *message);
-	*status = str(*statusInt);
-}
-EORULE;
-		$rule = new ProdsRule(
-			$this->rodsuser->getRodsAccount(),
-			$ruleBody,
-			array(
-				'*groupName' => $this->input->post('group_name'),
-			),
-			array(
-				'*status',
-				'*message',
-			)
-		);
-		$result = $rule->execute();
-
-		// It seems we can't be sure that this rule is executed AFTER the group
-		// has been created and the user has been added to it.
-		// Wait 200ms to give iRODS some time to process the previous rule.
-		usleep(200000);
-
-		$ruleBody = <<<EORULE
-rule {
-	uuGroupModify(*groupName, "category",    *category, *statusInt, *message);
-	if (*statusInt == 0) {
-		uuGroupModify(*groupName, "subcategory", *subcategory, *statusInt, *message);
-		if (*statusInt == 0) {
-			uuGroupModify(*groupName, "description", *description, *statusInt, *message);
-		}
-	}
+	uuGroupAdd(*groupName, *category, *subcategory, *description, *statusInt, *message);
 	*status = str(*statusInt);
 }
 EORULE;
@@ -325,12 +280,12 @@ EORULE;
 			->set_output(json_encode(array(
 				'status'  => (int)$result['*status'],
 				'message' =>      $result['*message'],
-			)));
+		)));
 	}
 
 	public function groupUpdate() {
 		$toSet = array();
-		foreach (array('description', 'category', 'subcategory') as $property) {
+		foreach (array('category', 'subcategory', 'description') as $property) {
 			if (in_array('group_'.$property, array_keys($this->input->post())))
 				$toSet[$property] = $this->input->post('group_'.$property);
 		}
@@ -359,7 +314,7 @@ EORULE;
 			);
 			$result = $rule->execute();
 
-			if ($result['*status'] > 0)
+			if ($result['*status'] != 0)
 				break;
 		}
 
@@ -494,8 +449,6 @@ EORULE;
 	}
 
 	public function index() {
-		$categories = $this->_getCategories();
-		$groups = $this->_getUserGroups();
 
 		$this->load->view('common-start', array(
 			 'styleIncludes' => array('css/group-manager.css'),
@@ -506,7 +459,9 @@ EORULE;
 			),
 		));
 		$this->load->view('group-manager_index', array(
-			'groupHierarchy' => $this->_getGroupHierarchy(),
+			'groupHierarchy'  => $this->_getGroupHierarchy(),
+			'userType'        => $this->rodsuser->getUserInfo()['type'],
+			'userZone'        => $this->rodsuser->getUserInfo()['zone'],
 		));
 		$this->load->view('common-end');
 	}
