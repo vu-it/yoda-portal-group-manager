@@ -2,7 +2,8 @@
  * \file
  * \brief     Yoda Group Manager frontend.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, 2017, Utrecht University
+ * \author    Lazlo Westerhof
+ * \copyright Copyright (c) 2015-2018, Utrecht University
  * \license   GPLv3, see LICENSE
  */
 
@@ -891,6 +892,11 @@ $(function() {
                 return;
             }
 
+	    // Check if username is external (non @uu.nl e-mail)
+            if (!userName.match(/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@uu.nl/)) {
+                console.log("Username is external.");
+            }
+
             $(el).find('input[type="submit"]').addClass('disabled').val('Adding...');
 
             var that = this;
@@ -904,8 +910,9 @@ $(function() {
                      user_name: userName,
                 },
             }).done(function(result) {
-                if ('status' in result)
+                if ('status' in result) {
                     console.log('User add completed with status ' + result.status);
+		}
                 if ('status' in result && result.status === 0) {
                     that.groups[groupName].members[userName] = {
                         // XXX
