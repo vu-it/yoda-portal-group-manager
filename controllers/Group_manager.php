@@ -395,12 +395,12 @@ EORULE;
 	$re = '/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@(?!uu.nl)/';
 
 	// Check if username is external.
-	preg_match_all($re, $userName, $matches, PREG_SET_ORDER, 0);
+	preg_match($re, $this->input->post('user_name'), $matches);
 
 	// Provision external user to COmanage.
         if (!empty($matches)) {
             // Encode username with base64.
-            $base64UserName = base64_encode(userName);
+            $base64UserName = base64_encode($this->input->post('user_name'));
 
             $ruleBody = <<<EORULE
 rule {
