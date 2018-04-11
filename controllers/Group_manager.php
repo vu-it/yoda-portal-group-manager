@@ -361,36 +361,6 @@ EORULE;
     }
 
     public function userCreate() {
-        $ruleBody = <<<EORULE
-rule {
-	uuGroupUserAdd(*groupName, *userName, *statusInt, *message);
-	*status = str(*statusInt);
-}
-EORULE;
-        $rule = new ProdsRule(
-            $this->rodsuser->getRodsAccount(),
-            $ruleBody,
-            array(
-                '*groupName' => $this->input->post('group_name'),
-                '*userName'  => $this->input->post('user_name'),
-            ),
-            array(
-                '*status',
-                '*message',
-            )
-        );
-        $result = $rule->execute();
-
-        if ($result['*status'] != 0) {
-	   $this->output
-                ->set_content_type('application/json')
-                ->set_output(json_encode(array(
-                    'status'  => (int)$result['*status'],
-                    'message' =>      $result['*message'],
-                )));
-	    return;
-	}
-
 	// Regex for external user (non @uu.nl address).
 	$re = '/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@(?!uu.nl)/';
 
@@ -424,6 +394,36 @@ EORULE;
             );
             $result = $rule->execute();
         }
+
+        if ($result['*status'] != 0) {
+	   $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'status'  => (int)$result['*status'],
+                    'message' =>      $result['*message'],
+                )));
+	    return;
+	}
+
+        $ruleBody = <<<EORULE
+rule {
+	uuGroupUserAdd(*groupName, *userName, *statusInt, *message);
+	*status = str(*statusInt);
+}
+EORULE;
+        $rule = new ProdsRule(
+            $this->rodsuser->getRodsAccount(),
+            $ruleBody,
+            array(
+                '*groupName' => $this->input->post('group_name'),
+                '*userName'  => $this->input->post('user_name'),
+            ),
+            array(
+                '*status',
+                '*message',
+            )
+        );
+        $result = $rule->execute();
 
         $this->output
             ->set_content_type('application/json')
