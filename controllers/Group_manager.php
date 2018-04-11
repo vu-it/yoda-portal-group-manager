@@ -397,7 +397,7 @@ EORULE;
 	// Check if username is external.
 	preg_match($re, $this->input->post('user_name'), $matches);
 
-	// Provision external user to COmanage.
+	// Enroll external user for COmanage.
         if (!empty($matches)) {
             // Encode username with base64.
             $base64UserName = base64_encode($this->input->post('user_name'));
