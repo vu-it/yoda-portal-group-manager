@@ -367,7 +367,7 @@ EORULE;
 	// Check if username is external.
 	preg_match($re, $this->input->post('user_name'), $matches);
 
-	// Enroll external user for COmanage.
+	// Enroll external user in COmanage.
         if (!empty($matches)) {
             // Encode username with base64.
             $base64User = base64_encode($this->input->post('user_name'));
@@ -395,6 +395,7 @@ EORULE;
             $result = $rule->execute();
         }
 
+	// Return if something went wrong during COmanage enrollment.
         if ($result['*status'] != 0) {
 	   $this->output
                 ->set_content_type('application/json')
@@ -405,6 +406,7 @@ EORULE;
 	    return;
 	}
 
+	// Add user to group.
         $ruleBody = <<<EORULE
 rule {
 	uuGroupUserAdd(*groupName, *userName, *statusInt, *message);
