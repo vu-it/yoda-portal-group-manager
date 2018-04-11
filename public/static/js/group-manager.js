@@ -894,53 +894,6 @@ $(function() {
 
             $(el).find('input[type="submit"]').addClass('disabled').val('Adding...');
 
-	    // Check if username is external (non @uu.nl e-mail) and provision to COmanage
-            if (!userName.match(/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@uu.nl/)) {
-                console.log("User is external, provision to COmanage.");
-
-		$.ajax({
-                    url:      $(el).attr('action'),
-                    type:     'post',
-                    dataType: 'json',
-                    data: {
-			user_name: userName,
-                    },
-		}).done(function(result) {
-		    console.log(result);
-                    if ('status' in result) {
-			console.log('User add completed with status ' + result.status);
-		    }
-                    if ('status' in result && result.status === 0) {
-			that.groups[groupName].members[userName] = {
-                            // XXX
-                            access: 'normal'
-			};
-
-			$(el).find('#f-user-create-name').select2('val', '');
-			$(el).addClass('hidden');
-			$(el).parents('.list-group-item').find('.user-create-text').removeClass('hidden');
-
-			that.deselectGroup();
-			that.selectGroup(groupName);
-			that.selectUser(userName);
-                    } else {
-			// Something went wrong. :(
-			if ('message' in result) {
-                            alert(result.message);
-			} else {
-                            alert(
-				"Error: Could not add a user due to an internal error.\n"
-				    + "Please contact a Yoda administrator"
-                            );
-			}
-                    }
-                    $(el).find('input[type="submit"]').removeClass('disabled').val('Add');
-
-		}).fail(function() {
-                    alert("Error: Could not add a user due to an internal error.\nPlease contact a Yoda administrator");
-		});		
-            }
-
             var that = this;
 
             $.ajax({

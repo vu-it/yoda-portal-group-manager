@@ -381,6 +381,32 @@ EORULE;
         );
         $result = $rule->execute();
 
+        if ($result['*status'] != 0) {
+	   $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'status'  => (int)$result['*status'],
+                    'message' =>      $result['*message'],
+                )));
+	}
+
+	// Regex for @uu.nl address.
+	$re = '/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@uu.nl/';
+
+	// Check if username is internal (@uu.nl e-mail).
+	preg_match_all($re, $str, $matches, PREG_SET_ORDER, 0);
+
+	// Provision external user to COmanage.
+        if (empty($matches)) {
+            $base64UserName = base64_encode(userName);
+            $ruleBody = <<<EORULE
+rule {
+	uuGroupExternalUserEnroll(*base64UserName, *statusInt, *message);
+	*status = str(*statusInt);
+}
+EORULE;
+        }
+
         $this->output
             ->set_content_type('application/json')
             ->set_output(json_encode(array(
