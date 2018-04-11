@@ -400,11 +400,11 @@ EORULE;
 	// Enroll external user for COmanage.
         if (!empty($matches)) {
             // Encode username with base64.
-            $base64UserName = base64_encode($this->input->post('user_name'));
+            $base64User = base64_encode($this->input->post('user_name'));
 
             $ruleBody = <<<EORULE
 rule {
-	uuGroupExternalUserEnroll(*base64UserName, *statusInt, *message);
+	uuGroupExternalUserEnroll(*groupName, *userName, *base64User, *status, *message);
 	*status = str(*statusInt);
 }
 EORULE;
@@ -413,7 +413,9 @@ EORULE;
                 $this->rodsuser->getRodsAccount(),
                 $ruleBody,
                 array(
-                    '*base64UserName'  => $base64UserName,
+                    '*groupName'  => $this->input->post('group_name'),
+                    '*userName'   => $this->input->post('user_name'),
+                    '*base64User' => $base64User,
                 ),
                 array(
                     '*status',
