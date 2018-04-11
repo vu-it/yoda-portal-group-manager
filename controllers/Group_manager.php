@@ -404,7 +404,7 @@ EORULE;
 
             $ruleBody = <<<EORULE
 rule {
-	uuGroupExternalUserEnroll(*groupName, *userName, *base64User, *statuInt, *message);
+	uuGroupExternalUserEnroll(*groupName, *userName, *base64User, *statusInt, *message);
 	*status = str(*statusInt);
 }
 EORULE;
