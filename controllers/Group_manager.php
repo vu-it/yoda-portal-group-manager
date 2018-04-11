@@ -391,28 +391,36 @@ EORULE;
 	    return;
 	}
 
-	// Regex for @uu.nl address.
-	$re = '/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@uu.nl/';
+	// Regex for external user (non @uu.nl address).
+	$re = '/^([a-z0-9][-a-z0-9_\+\.]*[a-z0-9])@(?!uu.nl)/';
 
-	// Check if username is internal (@uu.nl e-mail).
-	preg_match_all($re, $str, $matches, PREG_SET_ORDER, 0);
+	// Check if username is external.
+	preg_match_all($re, $userName, $matches, PREG_SET_ORDER, 0);
 
 	// Provision external user to COmanage.
-        if (empty($matches)) {
+        if (!empty($matches)) {
+            // Encode username with base64.
             $base64UserName = base64_encode(userName);
+
             $ruleBody = <<<EORULE
 rule {
 	uuGroupExternalUserEnroll(*base64UserName, *statusInt, *message);
 	*status = str(*statusInt);
 }
 EORULE;
-        $this->output
-            ->set_content_type('application/json')
-            ->set_output(json_encode(array(
-                'status'  => (int)$result['*status'],
-                'message' =>      "External user provisioned",
-            )));
-	    return;
+
+            $rule = new ProdsRule(
+                $this->rodsuser->getRodsAccount(),
+                $ruleBody,
+                array(
+                    '*base64UserName'  => $base64UserName,
+                ),
+                array(
+                    '*status',
+                    '*message',
+                )
+            );
+            $result = $rule->execute();
         }
 
         $this->output
