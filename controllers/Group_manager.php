@@ -388,6 +388,7 @@ EORULE;
                     'status'  => (int)$result['*status'],
                     'message' =>      $result['*message'],
                 )));
+	    return;
 	}
 
 	// Regex for @uu.nl address.
@@ -405,6 +406,13 @@ rule {
 	*status = str(*statusInt);
 }
 EORULE;
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(array(
+                'status'  => (int)$result['*status'],
+                'message' =>      "External user provisioned",
+            )));
+	    return;
         }
 
         $this->output
