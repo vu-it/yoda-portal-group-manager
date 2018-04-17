@@ -19,7 +19,7 @@ function explodeProperly($delim, $str) {
  */
 class Group_Manager extends MY_Controller {
 
-    protected $_groups;        /// `[ group... ]`.
+    protected $_groups;        /// `[ group... ]`.s
     protected $_categories;    /// `[ category... ]`.
     protected $_subcategories; /// `category => [ subcategory... ]...`.
 
@@ -378,6 +378,33 @@ rule {
 	*status = str(*statusInt);
 }
 EORULE;
+
+ 
+	//API Url
+	$url = 'https://api.e-tunity.eu/invite';
+
+	//Initiate cURL.
+	$ch = curl_init($url);
+
+	//The JSON data.
+	$jsonData = array(
+		  'email' => $this->input->post('user_name'),
+	);
+ 
+	//Encode the array into JSON.
+	$jsonDataEncoded = json_encode($jsonData);
+ 
+	//Tell cURL that we want to send a POST request.
+	curl_setopt($ch, CURLOPT_POST, 1);
+ 
+	//Attach our encoded JSON string to the POST fields.
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
+ 
+	//Set the content type to application/json
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json')); 
+ 
+	//Execute the request
+	$result = curl_exec($ch);
 
             $rule = new ProdsRule(
                 $this->rodsuser->getRodsAccount(),
