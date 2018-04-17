@@ -372,12 +372,12 @@ EORULE;
             // Encode username with base64.
             $base64User = base64_encode($this->input->post('user_name'));
 
-            $ruleBody = <<<EORULE
-rule {
-	uuGroupExternalUserEnroll(*groupName, *userName, *base64User, *statusInt, *message);
-	*status = str(*statusInt);
-}
-EORULE;
+//            $ruleBody = <<<EORULE
+//rule {
+//	uuGroupExternalUserEnroll(*groupName, *userName, *base64User, *statusInt, *message);
+//	*status = str(*statusInt);
+//}
+//EORULE;
 
  
 	//API Url
@@ -388,7 +388,7 @@ EORULE;
 
 	//The JSON data.
 	$jsonData = array(
-		  'email' => $this->input->post('user_name'),
+		  'email' => $this->input->post('user_name')
 	);
  
 	//Encode the array into JSON.
@@ -404,34 +404,34 @@ EORULE;
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json')); 
  
 	//Execute the request
-	$result = curl_exec($ch);
+	$curl_result = curl_exec($ch);
 
-            $rule = new ProdsRule(
-                $this->rodsuser->getRodsAccount(),
-                $ruleBody,
-                array(
-                    '*groupName'  => $this->input->post('group_name'),
-                    '*userName'   => $this->input->post('user_name'),
-                    '*base64User' => $base64User,
-                ),
-                array(
-                    '*status',
-                    '*message',
-                )
-            );
-            $result = $rule->execute();
+  //          $rule = new ProdsRule(
+  //              $this->rodsuser->getRodsAccount(),
+  //              $ruleBody,
+  //              array(
+  //                  '*groupName'  => $this->input->post('group_name'),
+  //                  '*userName'   => $this->input->post('user_name'),
+  //                  '*base64User' => $base64User,
+  //              ),
+  //              array(
+  //                  '*status',
+  //                  '*message',
+  //              )
+  //          );
+  //          $result = $rule->execute();
         }
 
-	// Return if something went wrong during COmanage enrollment.
-        if ($result['*status'] != 0) {
-	   $this->output
-                ->set_content_type('application/json')
-                ->set_output(json_encode(array(
-                    'status'  => (int)$result['*status'],
-                    'message' =>      $result['*message'],
-                )));
-	    return;
-	}
+//	// Return if something went wrong during COmanage enrollment.
+//        if ($result['*status'] != 0) {
+//	   $this->output
+//                ->set_content_type('application/json')
+//                ->set_output(json_encode(array(
+//                    'status'  => (int)$result['*status'],
+//                    'message' =>      $result['*message'],
+//                )));
+//	    return;
+//	}
 
 	// Add user to group.
         $ruleBody = <<<EORULE
