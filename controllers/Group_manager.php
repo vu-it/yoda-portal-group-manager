@@ -385,10 +385,11 @@ EORULE;
 
 	//Initiate cURL.
 	$ch = curl_init($url);
+	$email = explode("#", $this->input->post('user_name'));
 
 	//The JSON data.
 	$jsonData = array(
-		  'email' => $this->input->post('user_name')
+		  'email' => $email[0]
 	);
  
 	//Encode the array into JSON.
@@ -399,7 +400,8 @@ EORULE;
  
 	//Attach our encoded JSON string to the POST fields.
 	curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
- 
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
 	//Set the content type to application/json
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json')); 
  
